@@ -9,11 +9,14 @@ import pojos.AccountInfo;
 import pojos.ContactInfo;
 import pojos.StatementInfo;
 import util.Check;
+import util.ChooseCoulmn;
 import util.KeyException;
 
 public class Users {
+	
 	protected int value=0;
 	protected AccountConnect account = new MysqlAccountConnect();
+	
 	public ContactInfo getContactDetails(long id) throws KeyException {
 		Check.nullCheck(id);
 		ContactInfo contactInfo = account.getContactDetails(id);
@@ -37,17 +40,30 @@ public class Users {
 		}
 		return account.getBalance(accNo);
 	}
+
 	public void updateDetails(long id,int colName, String value) throws KeyException{
 		Check.nullCheck(id);
 		Check.nullCheck(value);
 		Check.emptyCheck(value);
-		 account.updateUserDetails(id,colName, value);
+		ChooseCoulmn column = null;
+		 if(colName==1) {
+		 column = ChooseCoulmn.MAIL;
+		}
+		 else if(colName==2) {
+		 column = ChooseCoulmn.NUMBER;
+		 }
+		 else if(colName==3) {
+			 column = ChooseCoulmn.ADDRESS;
+		}else {
+			throw new KeyException("Invalid input from user!! check drop down");
+		}
+		 account.updateUserDetails(id,column, value);
 	}
 	public Map<Object, StatementInfo> viewStatement(long fromAcc,long toAcc) throws KeyException{
 		if (fromAcc<=0|| toAcc <=0) {
 			throw new KeyException("Invalid Account Number");
 		}
-		return account.getStatement(fromAcc,toAcc);
+		return account.getStatement(fromAcc);
 	}
 	public String getuserName(long id) throws KeyException{
 		Check.nullCheck(id);

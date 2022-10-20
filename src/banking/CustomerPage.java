@@ -30,7 +30,6 @@ public class CustomerPage {
 		}while(operation==0);
 		return operation;
 	}
-	
 	public void displayCustomerPage(long id) throws KeyException{
 		String line ="___________________________________________________________________________";
 		int choose = 0;
@@ -62,7 +61,7 @@ public class CustomerPage {
 		boolean innerFlag= true;
 		do {
 			try {
-				LOG.info(line+"\n\t 1. View Balance\n\t 2. View Account Details\n\t 3. View Contact Details\n\t 4. Transaction\n\t 5. View Statement \n\t 6. Update Details\n\t 7. Logout");
+				System.out.println(line+"\n\t 1. View Balance\n\t 2. View Account Details\n\t 3. View Contact Details\n\t 4. Transaction\n\t 5. View Statement \n\t 6. Update Details\n\t 7. Logout");
 				switch(getInt()) {
 				case 1:
 					//User access page
@@ -111,7 +110,7 @@ public class CustomerPage {
 						break;
 					}
 					Iterator<Map.Entry<Object,StatementInfo>> itr = map.entrySet().iterator();
-					System.out.println("\nStatement for Account: "+accNo+"\nTransactionId\tFrom Account \t To Account\t\tDate&Time\t\t TransferType \t Amount");
+					System.out.println("\nStatement for Account: "+accNo+"\nTransactionId\tFrom Account \t To Account\tDate&Time\t TransferType \t Amount");
 					while(itr.hasNext()) 
 			        { 
 			             Map.Entry<Object, StatementInfo> entry = itr.next(); 
@@ -122,7 +121,7 @@ public class CustomerPage {
 			             Timestamp time = vals.getTime();
 			             String transType = vals.getTransactionType();
 			             double amount = vals.getAmount();
-			             System.out.println("\n"+trans_Id+"\t\t"+fromAcc+"\t"+toAcc+"\t\t"+time+"\t  "+transType+"\t"+amount); 
+			             System.out.println("\n"+trans_Id+"\t\t"+fromAcc+"\t "+toAcc+"\t\t"+time+"\t"+transType+"\t\t"+amount); 
 			        } 
 					break;
 				case 6:

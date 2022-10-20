@@ -1,8 +1,9 @@
 package pojos;
 
-public class AccountInfo {
+public class AccountInfo extends ContactInfo{
 	private String branch,accountType;
 	long userId;
+	double amount;
 	private long accountNum;
 
 	public void setUserId(long userId) {
@@ -20,6 +21,9 @@ public class AccountInfo {
 	public long getUserId() {
 		return userId;
 	}
+	public void setAmount(double amount) {
+		this.amount= amount;
+	}
 	public long getAccoutNumber() {
 		return accountNum;
 	}
@@ -28,5 +32,8 @@ public class AccountInfo {
 	}
 	public String getAccountType() {
 		return accountType;
+	}
+	public double getAmount() {
+		return amount;
 	}
 }

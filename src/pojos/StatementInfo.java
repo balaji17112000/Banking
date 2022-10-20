@@ -4,7 +4,7 @@ import java.sql.Timestamp;
 
 public class StatementInfo {
 	private String transactionType;
-	private long fromAcc,toAcc,transId;
+	private long fromAcc,toAcc,transId,userId;
 	private double amount;
 	private Timestamp time;
 	public void setFromAcc(long accNo) {
@@ -21,6 +21,9 @@ public class StatementInfo {
 	}
 	public void setTransType(String type) {
 		this.transactionType= type;
+	}
+	public void setUserId(long id) {
+		this.userId = id;
 	}
 	public void setTime(Timestamp time) {
 		this.time= time;
@@ -42,5 +45,8 @@ public class StatementInfo {
 	}
 	public Timestamp getTime() {
 		return time;
+	}
+	public long getUserId() {
+		return userId;
 	}
 }

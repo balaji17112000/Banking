@@ -34,7 +34,7 @@ public class NetBanking {
 		ValidateUserLogin validate = new ValidateUserLogin();
 		id = getLong("Enter UserId");
 		String password = getString("\nEnter Password");
-		return validate.validateStatus(id,password);
+		return validate.validateUserStatus(id,password);
 	}
 	private static boolean adminLogin() throws KeyException{
 		ValidateUserLogin validate = new ValidateUserLogin();
@@ -57,9 +57,9 @@ public class NetBanking {
 	}
 	private static int userType() {
 		int userType = 0;
-		System.out.println("________________________________________________________");
-		System.out.println("Enter 0 for Customer Login  (OR)\nEnter any Number for Admin Login");
-		System.out.println("________________________________________________________");
+		System.out.println("\t____________________________________________________");
+		System.out.println("\t|\t  Enter 0 for Customer Login  (OR)\t   |\n\t|\t  Enter any Number for Admin Login  \t   |");
+		System.out.println("\t|__________________________________________________|");
 		userType=getInt();
 		return userType;
 	}

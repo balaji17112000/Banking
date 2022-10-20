@@ -71,7 +71,7 @@ public void displayAdminPage(long id) {
 	boolean innerFlag= true;
 	do {
 			try {
-			LOG.info(line+"\n\t 1. View Admin Account Details\n\t 2. View Admin Contact Details\n\t 3. View All Log Statement \n\t 4. View  All Accounts Table \n\t 5. Get particular Account details \n\t 6. Get Particluar Statement  \n\t 7. Get Particular Contact Details \n\t 8. Change Users Contact Detils \n\t 9. Create Account \n\t 10. Delete Customer Account \n\t 11. Activate Customer Account \n\t 12. Deactivate Customer Account \n\t 13. Block Customer's Accounts \n\t 14. Activate Accounts \n\t 15. Deactive Customer Accounts \n\t 16. Approve transaction \n\t 17. Logout");
+			System.out.println(line+"\n\t 1. View Admin Account Details\n\t 2. View Admin Contact Details\n\t 3. View All Log Statement \n\t 4. View  All Accounts Table \n\t 5. Get particular Account details \n\t 6. Get Particluar Statement  \n\t 7. Get Particular Contact Details \n\t 8. Change Users Contact Detils \n\t 9. Create Account \n\t 10. Delete Customer Account \n\t 11. Activate Customer Account \n\t 12. Deactivate Customer Account \n\t 13. Block Customer's Accounts \n\t 14. Activate Accounts \n\t 15. Deactive Customer Accounts \n\t 16. Approve transaction \n\t 17. Logout");
 			switch(getInt()) {
 			case 1:
 				List<Long> accountNums = null;
@@ -178,7 +178,7 @@ public void displayAdminPage(long id) {
 					break;
 				}
 				AccountConnect account =  (AccountConnect) ConnectDB.getDBConnect();
-				Map<Object, StatementInfo> map = account.getStatement(userAccNo, userAccNo);
+				Map<Object, StatementInfo> map = account.getStatement(userAccNo);
 				if(map.isEmpty()) {
 					System.out.println("No Statement created.");
 					break;
@@ -305,7 +305,7 @@ public void displayAdminPage(long id) {
 			case 16:
 				Map<Object, ApprovalInfo> details = admin.viewRequest();
 				if(details.isEmpty()) {
-					System.out.println("No transaction done...");
+					System.out.println("No transaction is Pending...");
 					break;
 				}
 				Iterator<Map.Entry<Object,ApprovalInfo>> iterator = details.entrySet().iterator();
@@ -331,14 +331,15 @@ public void displayAdminPage(long id) {
 				System.out.println("Enter approval id to Approve");
 				Long approveWithrawId = getLong();
 				ApprovalInfo Withdrawetails = details.get(approveWithrawId);
-				long withdrawAcc = Withdrawetails.getAccoutNumber();
-				double amount = Withdrawetails.getAmount();
+				if(Withdrawetails==null) {
+					throw new KeyException("...Invalid Approval ID...");
+				}
 				System.out.println("Enter 1 to approve request and 0 to decline request");
 				int option = getInt();
 				if(option==1) {
-				admin.approveWithdraw(withdrawAcc,(int)amount,approvalId);
-				System.out.println("...Request Approved...");
-				break;
+					admin.approveWithdraw(Withdrawetails,approvalId,id);
+					System.out.println("...Request Approved...");
+					break;
 				}
 				admin.declineWithdraw(approvalId);
 				System.out.println("...Request Declined...");

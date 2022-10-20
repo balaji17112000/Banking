@@ -10,17 +10,17 @@ public enum ConnectDB {
 	INSTANCE;
 	public static Object getDBConnect()  {
 		String packageClass = null;
-			try (BufferedReader file = new BufferedReader(new FileReader("/home/inc12/Eclipse/NetBanking/src/mysql_util/DBClass"))) {
-				try {
-					packageClass = file.readLine();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
+		try (BufferedReader file = new BufferedReader(new FileReader("/home/inc12/git/repository3/NetBanking/src/mysql_util/DBClass"))) {
+			try {
+				packageClass = file.readLine();
 			} catch (IOException e) {
 				e.printStackTrace();
-			}
+		}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+	}
 		
 	try {
 		Class<?> dataBase = Class.forName(packageClass);

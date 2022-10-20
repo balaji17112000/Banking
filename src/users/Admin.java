@@ -6,6 +6,7 @@ import java.util.Map;
 
 import pojos.AccountInfo;
 import pojos.ApprovalInfo;
+import pojos.CustomerInfo;
 import pojos.StatementInfo;
 import util.Check;
 import util.KeyException;
@@ -31,8 +32,8 @@ public class Admin extends Users{
 			throw new KeyException("Incorrect Password");
 		}
 	}
-	public boolean accountCreate(String UserName,String accPassword,String panCard, long aadhar,long mobileNum, String emailId, String address, String branch,long intitalBalance,String accType) throws KeyException{
-		return account.createAccount( UserName, accPassword, panCard,  aadhar, mobileNum,  emailId,  address,  branch, intitalBalance, accType);
+	public boolean accountCreate(AccountInfo accountDetails,CustomerInfo customerDetails) throws KeyException{
+		return account.createAccount(accountDetails,customerDetails);
 	}
 	public boolean changeStatusCustomerAccount(long accNo,String status) throws KeyException {
 		return account.changeAccountStatus(accNo,status);
@@ -40,22 +41,32 @@ public class Admin extends Users{
 	public boolean changeStatusCustomerAccounts(long userID, String status) throws KeyException {
 		return account.customerAccountsChangeStatus(userID,status);
 	}
-	public boolean approveWithdraw(long fromAccount,int amount, long approvalId) throws KeyException {
+	public boolean approveWithdraw(ApprovalInfo Withdrawetails, long approvalId,long userId) throws KeyException {
+		Check.nullCheck(Withdrawetails);
+		long withdrawAcc = Withdrawetails.getAccoutNumber();
+		double amount = Withdrawetails.getAmount();
 		if(amount<=0) {
 			throw new KeyException("Amount should be > 0");
 		}
-		else if(amount>account.getBalance(fromAccount) ) {
+		else if(amount>account.getBalance(withdrawAcc) ) {
 			throw new KeyException("Insufficient balance");
 		}
-		boolean status = account.updateBalance(fromAccount,-amount);
+		boolean status = account.updateBalance(withdrawAcc,(int)-amount);
 		Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-		account.setStatement(fromAccount,fromAccount,timestamp,"Withdraw",amount);
+		StatementInfo statement = new StatementInfo();
+		statement.setAmount(amount);
+		statement.setFromAcc(withdrawAcc);
+		statement.setToAcc(withdrawAcc);
+		statement.setUserId(userId);
+		statement.setTime(timestamp);
+		statement.setTransType("Withdraw");
+		account.setStatement(statement);
 		account.approveRequest(approvalId,"Approved");
 		return status;
 	}
 	public boolean declineWithdraw(long approvalId) throws KeyException {
 		return account.approveRequest(approvalId,"Declined");
-	}
+	} 
 	public Map<Object, ApprovalInfo> viewRequest() throws KeyException {
 		return account.getApprovalList();
 	}

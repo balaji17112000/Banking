@@ -16,11 +16,16 @@ import java.util.Map;
 import pojos.AccountInfo;
 import pojos.ApprovalInfo;
 import pojos.ContactInfo;
+import pojos.CustomerInfo;
 import pojos.StatementInfo;
 import util.Check;
+import util.ChooseCoulmn;
+import util.EncryptDecrypt;
 import util.KeyException;
 
 public class MysqlAccountConnect implements AccountConnect{
+	
+	private static final EncryptDecrypt SECURE = new EncryptDecrypt();
 	
 	public Connection getConnection() throws KeyException {
 		try {
@@ -72,7 +77,7 @@ public class MysqlAccountConnect implements AccountConnect{
 		}
 	}
 	public  AccountInfo getAccountInfo(long accNo) throws KeyException{
-		String query = "Select Account_No,Branch,Account_Type from User_Accounts where Account_No = ?";
+		String query = "Select Account_No,Branch,Account_Type,User_Id from User_Accounts where Account_No = ?";
 		ResultSet result= null;
 		try (Connection connect = getConnection();
 				PreparedStatement preparedStmt = getPreStatement(query,connect);) {
@@ -83,6 +88,7 @@ public class MysqlAccountConnect implements AccountConnect{
 				userInfo.setAccountNumber(result.getLong(1));
 				userInfo.setAccType(result.getString(2));
 				userInfo.setBranch(result.getString(3));
+				userInfo.setUserId(result.getLong(4));
 				return userInfo;
 			} 
 			throw new KeyException("...Account Not found..");
@@ -111,15 +117,16 @@ public class MysqlAccountConnect implements AccountConnect{
 			throw new KeyException("...Error occured in DB layer! Cant able Update Balance...");
 		}
 	}
-	public boolean setStatement(long fromAcc ,long toAcc, Timestamp time,String type, int amount) throws KeyException {
-		String query = "insert into Statement_Table(From_Account,To_Account,Time_Stamp,Transaction_Type,Amount) values(?,?,?,?,?)";
+	public boolean setStatement(StatementInfo statement) throws KeyException {
+		String query = "insert into Statement_Table(From_Account,To_Account,Time_Stamp,Transaction_Type,Amount,Customer_Id) values(?,?,?,?,?,?)";
 		try (Connection connect = getConnection();
-				PreparedStatement preparedStmt = getPreStatement(query,connect);){
-			preparedStmt.setLong(1, fromAcc);
-			preparedStmt.setLong(2, toAcc);
-			preparedStmt.setTimestamp(3, time);
-			preparedStmt.setString(4, type);
-			preparedStmt.setInt(5, amount);
+			PreparedStatement preparedStmt = getPreStatement(query,connect);){
+			preparedStmt.setLong(1, statement.getFromAcc());
+			preparedStmt.setLong(2, statement.getToAcc());
+			preparedStmt.setTimestamp(3, statement.getTime());
+			preparedStmt.setString(4, statement.getTransactionType());
+			preparedStmt.setDouble(5, (double) statement.getAmount());
+			preparedStmt.setLong(6, (long) statement.getUserId());
 			preparedStmt.execute();
 			return true;
 		} catch (SQLException e) {
@@ -127,13 +134,12 @@ public class MysqlAccountConnect implements AccountConnect{
 			throw new KeyException("...Error occured in creating Statement");
 		}
 	}
-	public Map<Object,StatementInfo> getStatement(long fromAcc,long toAcc) throws KeyException{
-		String query = "Select * from Statement_Table where From_Account= ? or To_Account= ?";
+	public Map<Object,StatementInfo> getStatement(long fromAcc) throws KeyException{
+		String query = "Select * from Statement_Table where From_Account= ?";
 		Connection connect = getConnection();
 		PreparedStatement stmt = getPreStatement(query,connect);
 		try {
 			stmt.setLong(1, fromAcc);
-			stmt.setLong(2, toAcc);
 			ResultSet result = stmt.executeQuery();
 			return setToMapObject(result);
 		} catch (SQLException e) {
@@ -297,45 +303,36 @@ public class MysqlAccountConnect implements AccountConnect{
 		}
 	}
 	public boolean validateUser(long userId, String password,boolean Key) throws KeyException {
-		String query = "Select Role from Login_details where User_Id =? and password = ? and Status = 'ACTIVE'";
+		String query = "Select password from Login_details where User_Id =? and Status = 'ACTIVE'";
 		blockedCheck(userId);
 		if(Key) {
-			query = "Select Role from Login_details where User_Id =? and password = ? and Role= 'Admin'";
+			query = "Select password from Login_details where User_Id =? and Role= 'Admin'";
 		}
 			try(Connection connect = getConnection();
 					PreparedStatement stmt = getPreStatement(query,connect);) {
 				stmt.setLong(1, userId);
-				stmt.setString(2, password);
 				ResultSet result = stmt.executeQuery();
 				boolean flag = false;
 				if (result.next()) {
+					String encryptedPassword = result.getString(1);
+					if(SECURE.decrypt(encryptedPassword).equals(password)) {
 					flag = true;
 					return flag;
+					}
+					throw new KeyException("...Invalid user login credentials...");
 				}
-				throw new KeyException("...Invalid user login...");
 			} catch (SQLException e) {
 				e.printStackTrace();
 				throw new KeyException("...Error occured in DB layer! Cant validate user login");
 			}
+			return false;
 	}
-	public void updateUserDetails(long id, int colName, String value) throws KeyException {
-		ChooseCoulmn column = null;
-		 if(colName==1) {
-		 column = ChooseCoulmn.MAIL;
-		}
-		 else if(colName==2) {
-		 column = ChooseCoulmn.NUMBER;
-		 }
-		 else if(colName==3) {
-			 column = ChooseCoulmn.ADDRESS;
-		}else {
-			throw new KeyException("Invalid input from user!! check drop down");
-		}
-		Check.nullCheck(column);
-		String query = "update Contact_Details set "+column.getColumn()+" = ? where User_Id= ?"; //
+	public void updateUserDetails(long id,ChooseCoulmn colName, String value) throws KeyException {
+		Check.nullCheck(colName);
+		String query = "update Contact_Details set "+colName.getColumn()+" = ? where User_Id= ?"; //
 			try (Connection connect = getConnection();
 					PreparedStatement stmt = getPreStatement(query,connect);){
-				if(colName==2) {
+				if(colName.getColumn()=="Mobile_Number") {
 					long i=Long.parseLong(value);
 					stmt.setLong(1, i);
 				}else {
@@ -412,14 +409,14 @@ public class MysqlAccountConnect implements AccountConnect{
 			throw new KeyException("...Error occured while changing password! Cant change password...");
 		}
 	}
-	public boolean createAccount(String UserName,String accPassword,String panCardNo, long aadharNo,long mobileNum, String emailId, String address, String branch,long intitalBalance,String accType) throws KeyException{
-		String query = "insert into Login_details(User_Name,Password,Role,Status,Email_Id) values(?,?,'Customer','ACTIVE',?)";
+	public boolean createAccount(AccountInfo account,CustomerInfo customerDetails) throws KeyException{
+		String query = "insert into Login_details(User_Name,Password,Role,Status) values(?,?,'Customer','ACTIVE')";
 		Long userId = 0l;
 		try (Connection connect = getConnection();
 			PreparedStatement stmt = connect.prepareStatement(query,Statement.RETURN_GENERATED_KEYS);){
-			stmt.setString(1, UserName);
-			stmt.setString(2, accPassword);
-			stmt.setString(3, emailId);
+			String encryptedPassword = SECURE.encrypt(customerDetails.getPassword());
+			stmt.setString(1, customerDetails.getName());
+			stmt.setString(2, encryptedPassword);
 			 stmt.execute();
 			 ResultSet result =  stmt.getGeneratedKeys();
 			 if(result.next()) {
@@ -433,9 +430,9 @@ public class MysqlAccountConnect implements AccountConnect{
 		try (Connection connect = getConnection();
 				PreparedStatement stmt = getPreStatement(query,connect);){
 				stmt.setLong(1,userId);
-				stmt.setLong(2, mobileNum);
-				stmt.setString(3, emailId);
-				stmt.setString(4, address);
+				stmt.setLong(2, account.getMobile());
+				stmt.setString(3, account.getmail());
+				stmt.setString(4, account.getAddress());
 				 stmt.execute();
 			} catch (SQLException e) {
 				e.printStackTrace();
@@ -445,8 +442,8 @@ public class MysqlAccountConnect implements AccountConnect{
 		try (Connection connect = getConnection();
 				PreparedStatement stmt = getPreStatement(query,connect);){
 				stmt.setLong(1,userId);
-				stmt.setString(2, panCardNo);
-				stmt.setLong(3, aadharNo);
+				stmt.setString(2, customerDetails.getPanNo());
+				stmt.setLong(3, customerDetails.getAadharNo());
 				stmt.execute();
 			} catch (SQLException e) {
 				e.printStackTrace();
@@ -456,10 +453,10 @@ public class MysqlAccountConnect implements AccountConnect{
 		try (Connection connect = getConnection();
 				PreparedStatement stmt = getPreStatement(query,connect);){
 				stmt.setLong(1,userId);
-				stmt.setString(2, branch);
-				stmt.setLong(3, intitalBalance);
-				stmt.setString(4, accType);
-				 stmt.execute();
+				stmt.setString(2, account.getBranch());
+				stmt.setDouble(3, account.getAmount());
+				stmt.setString(4, account.getAccountType());
+				stmt.execute();
 			} catch (SQLException e) {
 				e.printStackTrace();
 				throw new KeyException("...Error occured while changing password! Cant change password...");
@@ -524,7 +521,8 @@ public class MysqlAccountConnect implements AccountConnect{
 	}
 	public boolean approveRequest(long approvalId,String status) throws KeyException {
 		String query = "Update Admin_approval set Status = ? where approval_Id = ?";
-		try(Connection connect = getConnection();PreparedStatement prpstmt = getPreStatement(query, connect);){
+		try(Connection connect = getConnection();
+				PreparedStatement prpstmt = getPreStatement(query, connect);){
 			prpstmt.setString(1, status);
 			prpstmt.setLong(2, approvalId);
 			int count = prpstmt.executeUpdate();
@@ -538,14 +536,4 @@ public class MysqlAccountConnect implements AccountConnect{
 		return false;
 	}
 
-}
-enum ChooseCoulmn{
-	MAIL("Mail_Id"),ADDRESS("Mobile_Number"),NUMBER("Mobile_Number");
-	String value;
-	 ChooseCoulmn(String value) {
-		this.value = value;
-	}
-	 public String getColumn(){
-		 return value;
-	 }
 }
